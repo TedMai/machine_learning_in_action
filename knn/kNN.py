@@ -1,6 +1,8 @@
 from numpy import *
 import operator
 from os import listdir
+from sklearn.neighbors import KNeighborsClassifier
+import datetime
 
 def createDataSet():
     group = array([[1.0, 1.1], [1.0, 1.0], [0, 0], [0, 0.1]])
@@ -87,6 +89,8 @@ def img2vector(filename):
 
 
 def handwritingClassTest():
+    # time cal
+    starttime = datetime.datetime.now()
     hwLabels = []
     trainingFileList = listdir('trainingDigits')
     m = len(trainingFileList)
@@ -111,3 +115,42 @@ def handwritingClassTest():
             errorCount += 1
     print 'the total num of error is: %d' % errorCount
     print 'the total error rate is: %f' % (errorCount / float(mTest))
+    endtime = datetime.datetime.now()
+    print 'the algorithm total run: %ds' % (endtime - starttime).seconds
+
+def handwritingClassTestByScikitLearn():
+    starttime = datetime.datetime.now()
+    hwLabels = []
+    trainingFileList = listdir('trainingDigits')
+    m = len(trainingFileList)
+    trainingMat = zeros((m, 1024))
+    for i in range(m):
+        fileNameStr = trainingFileList[i]
+        fileStr = fileNameStr.split('.')[0]
+        classNumStr = int(fileStr.split('_')[0])
+        hwLabels.append(classNumStr)
+        trainingMat[i, :] = img2vector('trainingDigits/%s' % fileNameStr)
+    testFileList = listdir('testDigits')
+    errorCount = 0
+    mTest = len(testFileList)
+    testingMat = zeros((mTest, 1024))
+    testingLabels = []
+    # call scikit-learn
+    neigh = KNeighborsClassifier(n_neighbors=3, algorithm='kd_tree')
+    neigh.fit(trainingMat, hwLabels)
+    for i in range(mTest):
+        fileNameStr = testFileList[i]
+        fileStr = fileNameStr.split(".")[0]
+        classNumStr = int(fileStr.split("_")[0])
+        testingLabels.append(classNumStr)
+        testingMat[i,:] = img2vector('testDigits/%s' % fileNameStr)
+
+    result = neigh.predict(testingMat)
+    for i in range(mTest):
+        print 'the classifier came back with: %d, the real answer is: %d' % (result[i], testingLabels[i])
+        if result[i] != testingLabels[i]:
+            errorCount += 1
+    print 'the total num of error is: %d' % errorCount
+    print 'the total error rate is: %f' % (errorCount / float(mTest))
+    endtime = datetime.datetime.now()
+    print 'the algorithm total run: %ds' % (endtime - starttime).seconds

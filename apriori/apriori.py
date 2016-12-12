@@ -53,8 +53,8 @@ def aprioriGen(Lk, k):
     lenLk = len(Lk)
     for i in range(lenLk):
         for j in range(i+1, lenLk):
-            L1 = list(Lk[i][:,k-2])
-            L2 = list(Lk[j][:,k-2])
+            L1 = list(Lk[i])[:k-2]
+            L2 = list(Lk[j])[:k-2]
             L1.sort()
             L2.sort()
             if L1 == L2:
@@ -78,10 +78,28 @@ def apriori(dataSet, minSupport=0.5):
 
 
 def generateRules(L, supportData, minConf =0.7):
-    pass
+    bigRuleList = []
+    for i in range(1, len(L)): # 只获取有两个或更多元素的集合
+        for freqSet in L[i]: # 对于每个频繁项集
+            H1 = [frozenset([item]) for item in freqSet]
+            if i > 1:
+                rulesFromConseq(freqSet, H1, supportData, bigRuleList, minConf)
+            else:
+                calcConf(freqSet, H1, supportData, bigRuleList, minConf)
+    return bigRuleList
+
 
 
 def calcConf(freSet, H, supportData, br1, minConf=0.7):
+    """
+    计算满足最小可信度的频繁项集
+    :param freSet: 频繁项集
+    :param H: 项集
+    :param supportData: 支持度集合
+    :param br1: 存放所有关联规则
+    :param minConf: 最小可信度
+    :return:
+    """
     prunedH = []
     for conseq in H:
         conf = supportData[freSet] / supportData[freSet - conseq]
@@ -90,3 +108,12 @@ def calcConf(freSet, H, supportData, br1, minConf=0.7):
             br1.append((freSet-conseq, conseq, conf))
             prunedH.append(conseq)
     return prunedH
+
+
+def rulesFromConseq(freqSet, H, supportData, br1, minConf=0.7):
+    m = len(H[0])
+    if len(freqSet) > (m+1):
+        Hmp1 = aprioriGen(H, m+1)
+        Hmp1 = calcConf(freqSet, Hmp1, supportData, br1, minConf)
+        if (len(Hmp1) > 1):  # need at least two sets to merge
+            rulesFromConseq(freqSet, Hmp1, supportData, br1, minConf)
